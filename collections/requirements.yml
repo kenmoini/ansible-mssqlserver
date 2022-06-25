@@ -1,0 +1,5 @@
+---
+# ansible-galaxy collection install -r ./collections/requirements.yml
+collections:
+  - name: community.windows
+  - name: ansible.windows

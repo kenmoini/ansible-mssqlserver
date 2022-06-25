@@ -1,0 +1,57 @@
+---
+# tasks file for deploy_ms_adds
+
+- name: Install needed DSC modules
+  community.windows.win_psmodule:
+    name: "{{ module_item }}"
+    state: present
+  loop:
+    - ActiveDirectoryDsc
+  loop_control:
+    loop_var: module_item
+    label: "{{ module_item }}"
+
+- name: Install needed Windows Server Features
+  ansible.windows.win_feature:
+    state: present
+    name: "{{ feature_item.name }}"
+    include_sub_features: "{{ feature_item.sub_features | default(omit) }}"
+    include_management_tools: "{{ feature_item.management_tools | default(omit) }}"
+  loop:
+    - name: AD-Domain-Services
+      sub_features: true
+      management_tools: true
+  loop_control:
+    loop_var: feature_item
+    label: "{{ feature_item.name }}"
+
+- name: Create new AD forest
+  win_domain:
+    dns_domain_name: "{{ ad_domain }}"
+    safe_mode_password: "{{ ad_domain_safe_mode_password }}"
+  register: result
+
+- name: Reboot after creation
+  win_reboot:
+    msg: "Server config in progress; rebooting..."
+  when: result.reboot_required
+
+- name: Add the Server to the domain
+  ansible.windows.win_domain_controller:
+    dns_domain_name: "{{ ad_domain }}"
+    domain_admin_user: "{{ ad_domain_admin_username }}"
+    domain_admin_password: "{{ ad_domain_admin_password }}"
+    safe_mode_password: "{{ ad_domain_safe_mode_password }}"
+    state: domain_controller
+  register: dc_promotion
+
+- name: Reboot after creation
+  win_reboot:
+    msg: "Server config in progress; rebooting..."
+  when: dc_promotion.reboot_required
+
+- name: Start the ADDS Service
+  win_service:
+    name: NTDS
+    state: started
+    start_mode: auto

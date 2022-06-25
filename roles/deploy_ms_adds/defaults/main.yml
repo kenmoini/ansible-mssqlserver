@@ -1,0 +1,6 @@
+---
+# defaults file for deploy_ms_adds
+ad_domain: tycho.local
+ad_domain_admin_username: captain@tycho.local
+ad_domain_admin_password: "RememberTheCant!"
+ad_domain_safe_mode_password: "RememberTheCant!"
